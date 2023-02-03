@@ -48,8 +48,10 @@
     playerElements.forEach((playerElement, playerIndex) => {
       playerElement.onclick = function () {
         // Only allow clicks if the game is running, the client is holding the potato, and they didn't click on themselves
+        console.table(clientPlayerIndex, potatoHolderIndex, playerIndex)
         if (clientPlayerIndex === potatoHolderIndex && clientPlayerIndex !== playerIndex) {
           // and pass the potato
+          console.log("CLICK!!!!!")
           passThePotatoTo(playerIndex);
         }
       }
@@ -81,16 +83,18 @@
 
       // TODO: Define the .onmessage() handler
       wsClient.onmessage = (event) => {
-        const serverData = JSON.parse(event.data);
-        console.log(serverData);
-
-        switch (serverData.type) {
+        const { type, payload} = JSON.parse(event.data);
+        switch (type) {
           case SERVER.MESSAGE.PLAYER_ASSIGNMENT:
-            const playerIndex = serverData.payload.clientPlayerIndex;
+            const playerIndex = payload.clientPlayerIndex;
             setPlayerIndex(playerIndex)
             break;
           case SERVER.MESSAGE.GAME_FULL:
-            updateDisplay("let the games begin!", "gray");
+            updateDisplay('The game is full :(', "gray");
+            break;
+          case SERVER.BROADCAST.NEW_POTATO_HOLDER:
+            updateDisplay(``, "gray");
+            updateCurrentPotatoHolder(payload.newPotatoHolderIndex)
             break;
           default:
             break;
@@ -121,9 +125,12 @@
     // Sets the current potatoHolderIndex ands sends it to the server
     function passThePotatoTo(newPotatoHolderIndex) {
       // set the potatoHolderIndex to be the player that was clicked on
-      potatoHolderIndex = newPotatoHolderIndex;
-
+      potatoHolderIndex = newPotatoHolderIndex;;
       // TODO: Send the server a 'PASS_POTATO' message with the newPotatoHolderIndex
+      wsClient.send(JSON.stringify({
+        type: CLIENT.PASS_POTATO,
+        payload: { newPotatoHolderIndex }
+      }))
 
     }
 

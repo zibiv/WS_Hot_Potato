@@ -54,7 +54,12 @@ wServer.on('connection', (socket) => {
       case CLIENT.MESSAGE.NEW_USER:
         console.log('new user!');
         handleNewUser(socket);
+        break;
+      case CLIENT.PASS_POTATO:
+        passThePotatoTo(userData.payload.newPotatoHolderIndex);
+        break;
       default:
+        console.log("I don't know this type🤖")
         break;
     }
   });
@@ -67,6 +72,13 @@ wServer.on('connection', (socket) => {
 ///////////////////////////////////////////////
 
 // TODO: Implement the broadcast pattern
+function broadcast(data, socketToOmit) {
+  wServer.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN && client !== socketToOmit) {
+      client.send(JSON.stringify(data));
+    }
+  });
+}
 
 function handleNewUser(socket) {
   // Until there are 4 players in the game....
@@ -74,6 +86,7 @@ function handleNewUser(socket) {
   if (nextPlayerIndex < 4) {
     //по умолчанию не правильно работает распределение id, если один из пользователей выйдет или обновит страницу то будет выдан следующий id, хотя кол-во игроков не изменилось.
     //необходимо учитывать кол-во пользователей и выдавать id в зависимости от этого кол-ва
+    //🧠сделать значек о готовности остальных игроков
     // TODO: Send PLAYER_ASSIGNMENT to the socket with a clientPlayerIndex
     socket.send(
       JSON.stringify({
@@ -108,6 +121,10 @@ function handleNewUser(socket) {
 
 function passThePotatoTo(newPotatoHolderIndex) {
   // TODO: Broadcast a NEW_POTATO_HOLDER message with the newPotatoHolderIndex
+  broadcast({
+    type: SERVER.BROADCAST.NEW_POTATO_HOLDER,
+    payload: { newPotatoHolderIndex },
+  });
 }
 
 function startTimer() {
