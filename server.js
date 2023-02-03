@@ -73,6 +73,7 @@ wServer.on('connection', (socket) => {
 
 // TODO: Implement the broadcast pattern
 function broadcast(data, socketToOmit) {
+  //Данные об игре должны транслироваься только игрокам.
   wServer.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN && client !== socketToOmit) {
       client.send(JSON.stringify(data));
@@ -135,7 +136,12 @@ function startTimer() {
   const interval = setInterval(() => {
     if (clockValue > 0) {
       // TODO: broadcast 'COUNTDOWN' with the clockValue
-
+      broadcast({
+        type: SERVER.BROADCAST.COUNTDOWN,
+        payload: {
+          clockValue
+        }
+      })
       // decrement until the clockValue reaches 0
       clockValue--;
     }
@@ -146,6 +152,9 @@ function startTimer() {
       nextPlayerIndex = 0; // reset the players index
 
       // TODO: Broadcast 'GAME_OVER'
+      broadcast({
+        type: SERVER.BROADCAST.GAME_OVER
+      })
     }
   }, 1000);
 }

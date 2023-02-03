@@ -93,8 +93,13 @@
             updateDisplay('The game is full :(', "gray");
             break;
           case SERVER.BROADCAST.NEW_POTATO_HOLDER:
-            updateDisplay(``, "gray");
             updateCurrentPotatoHolder(payload.newPotatoHolderIndex)
+            break;
+          case SERVER.BROADCAST.COUNTDOWN:
+            countDown(payload.clockValue);
+            break;
+          case SERVER.BROADCAST.GAME_OVER:
+            endGame();
             break;
           default:
             break;
