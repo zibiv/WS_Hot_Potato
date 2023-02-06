@@ -13,6 +13,7 @@ const { PORT, MAX_TIME, CLIENT, SERVER } = CONSTANTS;
 
 // Application Variables;
 let nextPlayerIndex = 0;
+let playersArray = new Array(4).fill(false);
 
 ///////////////////////////////////////////////
 ///////////// HTTP SERVER LOGIC ///////////////
@@ -63,6 +64,10 @@ wServer.on('connection', (socket) => {
         break;
     }
   });
+  socket.on('close', ()=> {
+    playersArray[socket.id] = false;
+    console.log(socket.id, "disconected");
+  })
 });
 
 // 'PASS_POTATO' => passThePotatoTo(newPotatoHolderIndex)
@@ -73,7 +78,7 @@ wServer.on('connection', (socket) => {
 
 // TODO: Implement the broadcast pattern
 function broadcast(data, socketToOmit) {
-  //Данные об игре должны транслироваься только игрокам.
+  //Данные об игре должны транслироваься только игрокам который в этой игре находятся.
   wServer.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN && client !== socketToOmit) {
       client.send(JSON.stringify(data));
@@ -84,22 +89,19 @@ function broadcast(data, socketToOmit) {
 function handleNewUser(socket) {
   // Until there are 4 players in the game....
   console.log(`we have ${wServer.clients.size}`);
-  if (nextPlayerIndex < 4) {
-    //по умолчанию не правильно работает распределение id, если один из пользователей выйдет или обновит страницу то будет выдан следующий id, хотя кол-во игроков не изменилось.
-    //необходимо учитывать кол-во пользователей и выдавать id в зависимости от этого кол-ва
-    //🧠сделать значек о готовности остальных игроков
+  const nextID = playersArray.findIndex(player => !player);
+  if(nextID != -1) {
+    socket.id = nextID;
+    playersArray[nextID] = socket;
     // TODO: Send PLAYER_ASSIGNMENT to the socket with a clientPlayerIndex
     socket.send(
       JSON.stringify({
         type: SERVER.MESSAGE.PLAYER_ASSIGNMENT,
-        payload: { clientPlayerIndex: nextPlayerIndex },
+        payload: { clientPlayerIndex: nextID },
       })
     );
-    // Then, increment the number of players in the game
-    nextPlayerIndex++;
-
-    // If they are the 4th player, start the game
-    if (nextPlayerIndex === 4) {
+    // If they are the 4th player, start the game  
+    if(nextID === 3) {
       // Choose a random potato holder to start
       const randomFirstPotatoHolder = Math.floor(Math.random() * 4);
       passThePotatoTo(randomFirstPotatoHolder);
@@ -108,7 +110,6 @@ function handleNewUser(socket) {
       startTimer();
     }
   }
-
   // If 4 players are already in the game...
   else {
     // TODO: Send GAME_FULL to the socket
@@ -149,7 +150,9 @@ function startTimer() {
     // At 0...
     else {
       clearInterval(interval); // stop the timer
-      nextPlayerIndex = 0; // reset the players index
+      playersArray.forEach((player, idx) => {
+        playersArray[idx] = false;
+      })// reset the players index
 
       // TODO: Broadcast 'GAME_OVER'
       broadcast({
